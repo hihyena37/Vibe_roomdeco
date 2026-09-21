@@ -1,0 +1,134 @@
+/* Room Canvas & Furniture Item Styles */
+.room-canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F1F5F9;
+  background-image: radial-gradient(#CBD5E1 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  overflow: auto;
+  position: relative;
+  padding: 32px;
+}
+
+.room-canvas {
+  width: 960px;
+  height: 640px;
+  background-color: var(--floor-color, #FDFBF7);
+  border: 3px solid #CBD5E1;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.12);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Floor Subtle Grid Pattern inside Canvas */
+.canvas-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* Canvas Instructions overlay when canvas is empty */
+.canvas-empty-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  text-align: center;
+}
+
+.canvas-empty-guide svg {
+  width: 48px;
+  height: 48px;
+  stroke: #94A3B8;
+  opacity: 0.6;
+}
+
+.canvas-empty-guide p {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.canvas-empty-guide span {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Furniture Item on Canvas */
+.furniture-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: grab;
+  touch-action: none; /* Crucial for pointer touch drag */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.furniture-item:hover {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.furniture-item.dragging {
+  cursor: grabbing !important;
+  z-index: 9999 !important;
+  opacity: 0.95;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.2));
+}
+
+/* Selected State - Outline & bounding box */
+.furniture-item.selected {
+  outline: 2.5px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.selected-badge-indicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+/* Rotation indicator ring */
+.selected-corner-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #FFFFFF;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.corner-tl { top: -6px; left: -6px; }
+.corner-tr { top: -6px; right: -6px; }
+.corner-bl { bottom: -6px; left: -6px; }
+.corner-br { bottom: -6px; right: -6px; }

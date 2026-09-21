@@ -1,0 +1,192 @@
+/* Furniture Panel Styles */
+
+/* 1. Category Tabs Area - Multi-row wrap layout without horizontal scroll */
+.category-tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: #FFFFFF;
+  flex-shrink: 0;
+  overflow-x: hidden;
+}
+
+.category-tab-btn {
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  line-height: 1.3;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.category-tab-btn:hover {
+  background: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.category-tab-btn.active {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+}
+
+/* Furniture List Container - Vertical Scroll */
+.furniture-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+/* 2. Furniture Catalog Card */
+.furniture-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.furniture-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card Top Section: Icon Preview + Text Info */
+.card-top-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.card-preview-box {
+  width: 70px;
+  height: 60px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Furniture Name: 13~14px, font-weight 600, up to 2 lines without truncation */
+.card-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-dimension {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Description: 11~12px, up to 2~3 lines readable */
+.card-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Card Bottom Section: Style Tags + Add Button */
+.card-bottom-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid #F1F5F9;
+}
+
+/* Tags: natural flex-wrap */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-tag {
+  font-size: 10.5px;
+  color: var(--primary);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Add Button: Non-shrinking clean button */
+.card-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 14px;
+  min-height: 32px;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.card-add-btn:hover {
+  background-color: var(--primary);
+  color: #FFFFFF;
+}

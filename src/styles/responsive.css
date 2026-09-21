@@ -1,0 +1,263 @@
+/* Responsive Styles for Tablet (768px - 1024px) and Mobile (360px - 767px) */
+
+/* Mobile Bottom Toolbar */
+.mobile-bottom-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  background-color: #FFFFFF;
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  padding: 10px 16px;
+  z-index: 50;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-toolbar-btn {
+  height: 48px;
+  min-width: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-open-catalog {
+  background-color: var(--primary);
+  color: #FFFFFF;
+}
+
+.btn-open-catalog:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-mobile-rotate {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+.btn-mobile-delete {
+  background-color: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  flex: 0 0 48px;
+  padding: 0;
+}
+
+.btn-mobile-info {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  flex: 0 0 48px;
+  padding: 0;
+}
+
+/* Mobile & Tablet Bottom Sheet Overlay */
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.bottom-sheet-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 80vh;
+  background-color: #FFFFFF;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s ease-out;
+}
+
+.bottom-sheet-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.bottom-sheet-drag-handle {
+  width: 40px;
+  height: 4px;
+  background-color: var(--border-strong);
+  border-radius: var(--radius-full);
+  margin: 0 auto 8px auto;
+}
+
+.bottom-sheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bottom-sheet-close-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+/* Tablet Layout (768px - 1024px) */
+@media (max-width: 1024px) {
+  .furniture-panel-wrapper {
+    position: fixed;
+    top: var(--header-height);
+    bottom: 0;
+    left: 0;
+    width: 320px;
+    box-shadow: var(--shadow-xl);
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    z-index: 40;
+  }
+
+  .furniture-panel-wrapper.panel-open {
+    transform: translateX(0);
+  }
+
+  .inspector-panel-wrapper {
+    position: fixed;
+    top: var(--header-height);
+    bottom: 0;
+    right: 0;
+    width: 300px;
+    box-shadow: var(--shadow-xl);
+    transform: translateX(100%);
+    transition: transform var(--transition-normal);
+    z-index: 40;
+  }
+
+  .inspector-panel-wrapper.panel-open {
+    transform: translateX(0);
+  }
+
+  .tablet-panel-overlay {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 35;
+  }
+
+  .header-toggle-btn {
+    display: inline-flex !important;
+  }
+}
+
+/* Header Toggle Buttons for Tablet */
+.header-toggle-btn {
+  display: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.header-toggle-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Mobile Layout (<= 767px, down to 360px) */
+@media (max-width: 767px) {
+  .room-editor-header {
+    padding: 0 12px;
+    height: 54px;
+  }
+
+  .header-subtitle-tag,
+  .count-label,
+  .back-btn .btn-text,
+  .reset-btn .btn-text,
+  .header-divider {
+    display: none;
+  }
+
+  .header-title {
+    font-size: 15px;
+  }
+
+  .item-count-badge {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .reset-btn {
+    padding: 6px 10px;
+  }
+
+  .header-toggle-btn {
+    display: none !important;
+  }
+
+  /* Hide desktop sidebars on mobile */
+  .room-editor-body > .furniture-panel-wrapper,
+  .room-editor-body > .inspector-panel-wrapper {
+    display: none !important;
+  }
+
+  .mobile-bottom-bar {
+    display: flex;
+  }
+
+  /* Padding at the bottom for toolbar */
+  .room-canvas-container {
+    padding: 12px 12px 76px 12px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
