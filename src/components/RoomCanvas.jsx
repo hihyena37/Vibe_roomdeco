@@ -3,55 +3,7 @@ import FurnitureItem from './FurnitureItem.jsx';
 import { getFurnitureById } from '../data/furniture.js';
 import '../styles/canvas.css';
 
-export const CANVAS_WIDTH = 960;
-export const CANVAS_HEIGHT = 640;
-export const GRID_SIZE = 32;
-
-/**
- * Calculate visual boundary limits taking 90/270 degree rotation into account.
- */
-export function getItemBounds(width, height, rotation = 0) {
-  const isRotated90 = rotation % 180 !== 0;
-  let minX, maxX, minY, maxY;
-
-  if (isRotated90) {
-    minX = (height - width) / 2;
-    maxX = CANVAS_WIDTH - (width + height) / 2;
-    minY = (width - height) / 2;
-    maxY = CANVAS_HEIGHT - (width + height) / 2;
-  } else {
-    minX = 0;
-    maxX = CANVAS_WIDTH - width;
-    minY = 0;
-    maxY = CANVAS_HEIGHT - height;
-  }
-
-  maxX = Math.max(minX, maxX);
-  maxY = Math.max(minY, maxY);
-
-  return { minX, maxX, minY, maxY };
-}
-
-/**
- * Snap coordinates to GRID_SIZE while strictly constraining within canvas boundaries.
- */
-export function snapAndClampPosition(rawX, rawY, width, height, rotation = 0) {
-  const { minX, maxX, minY, maxY } = getItemBounds(width, height, rotation);
-
-  // 1. Boundary restriction
-  const clampedX = Math.max(minX, Math.min(maxX, rawX));
-  const clampedY = Math.max(minY, Math.min(maxY, rawY));
-
-  // 2. Grid Snap (32px grid)
-  let snappedX = Math.round(clampedX / GRID_SIZE) * GRID_SIZE;
-  let snappedY = Math.round(clampedY / GRID_SIZE) * GRID_SIZE;
-
-  // 3. Final clamp to guarantee it stays inside room
-  snappedX = Math.max(minX, Math.min(maxX, snappedX));
-  snappedY = Math.max(minY, Math.min(maxY, snappedY));
-
-  return { x: snappedX, y: snappedY };
-}
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition } from '../utils/roomGeometry.js';
 
 export default function RoomCanvas({
   space,
@@ -74,16 +26,16 @@ export default function RoomCanvas({
       if (!clientWidth || !clientHeight) return;
 
       const isMobile = window.innerWidth <= 767;
-      // On mobile, keep ~14px margin on each side (total 28px)
-      const marginX = isMobile ? 28 : 48;
-      const marginY = isMobile ? 20 : 48;
+      const styles = getComputedStyle(containerRef.current);
+      const marginX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+      const marginY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
 
       const scaleX = (clientWidth - marginX) / CANVAS_WIDTH;
       const scaleY = (clientHeight - marginY) / CANVAS_HEIGHT;
 
       // Fit inside container, max scale 1 (do not upscale beyond 100% on huge screens)
-      const fittedScale = Math.min(scaleX, scaleY, 1);
-      setScale(Math.max(0.25, fittedScale));
+      const fittedScale = Math.min(scaleX, isMobile ? 1 : scaleY, 1);
+      setScale(Math.max(0.01, fittedScale));
     };
 
     updateScale();
@@ -102,6 +54,7 @@ export default function RoomCanvas({
 
   // Pointer Down on furniture item
   const handleItemPointerDown = useCallback((e, instanceId) => {
+    if (dragRef.current || !e.isPrimary) return;
     if (e.button !== undefined && e.button !== 0) return;
 
     e.stopPropagation();
@@ -165,6 +118,7 @@ export default function RoomCanvas({
   // Pointer Up / Cancel
   const handlePointerEnd = useCallback((e) => {
     if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
+    if (e.type === 'pointerup') handlePointerMove(e);
 
     if (dragRef.current.targetElement) {
       try {
@@ -176,7 +130,7 @@ export default function RoomCanvas({
 
     dragRef.current = null;
     setDraggingId(null);
-  }, []);
+  }, [handlePointerMove]);
 
   // Canvas background click -> Deselect
   const handleCanvasClick = useCallback((e) => {
@@ -220,10 +174,13 @@ export default function RoomCanvas({
             transformOrigin: 'top left',
             '--floor-color': space.floorColor,
             '--wall-color': space.wallColor,
+            '--grid-size': `${GRID_SIZE}px`,
+            '--canvas-scale': scale,
           }}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
+          onLostPointerCapture={handlePointerEnd}
           onClick={handleCanvasClick}
         >
           <div className="canvas-grid-overlay" />
@@ -265,3 +222,4 @@ export default function RoomCanvas({
     </main>
   );
 }
+

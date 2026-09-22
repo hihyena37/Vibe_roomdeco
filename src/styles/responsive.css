@@ -261,3 +261,52 @@
     opacity: 1;
   }
 }
+
+/* Keep the canvas and controls in the document layout, including safe areas. */
+@media (max-width: 767px) {
+  .room-editor-page { height: 100dvh; }
+  .room-editor-body { min-height: 0; }
+  .room-editor-page .room-canvas-container { padding: 14px; }
+  .mobile-bottom-bar {
+    position: relative;
+    height: auto;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .mobile-selection-toolbar { height: 76px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+  .mobile-selection-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-selection-hint { text-align: center; font-size: 12px; color: var(--text-secondary); }
+  .mobile-selection-actions { display: flex; gap: 8px; }
+  .mobile-toolbar-btn { flex: 1; min-height: 44px; }
+  .btn-open-catalog { flex: none; width: 100%; }
+  .btn-mobile-info, .btn-mobile-delete { flex: 1; padding: 0 12px; }
+  .bottom-sheet-container { height: min(440px, 55dvh); max-height: 55dvh; padding-bottom: env(safe-area-inset-bottom); animation: none; }
+  .bottom-sheet-backdrop { animation: none; backdrop-filter: none; }
+  .bottom-sheet-content { min-height: 0; padding: 0 12px; overflow: hidden; }
+  .mobile-embedded { height: 100%; min-height: 0; }
+  .mobile-embedded .furniture-panel, .mobile-embedded .inspector-panel { height: 100%; }
+  .mobile-embedded .category-tabs-container { flex-wrap: nowrap; overflow-x: auto; padding: 8px 0; }
+  .mobile-embedded .category-tab-btn { min-height: 44px; flex-shrink: 0; }
+  .mobile-embedded .furniture-panel-content, .mobile-embedded .inspector-panel-content { min-height: 0; overscroll-behavior: contain; }
+  .mobile-embedded .furniture-list-grid { padding: 4px 0; gap: 8px; }
+  .mobile-embedded .card-add-btn { min-height: 44px; }
+  .canvas-empty-guide { gap: 16px; padding: 32px; }
+  .canvas-empty-guide p { font-size: calc(13px / var(--canvas-scale)); }
+  .canvas-empty-guide span { display: none; }
+  .tablet-panel-overlay { display: none; }
+  .header-left, .header-right { gap: 8px; }
+}
+@media (min-width: 768px) {
+  .bottom-sheet-container, .bottom-sheet-backdrop { display: none; }
+}
+
+@media (max-width: 767px) {
+  .canvas-grid-overlay {
+    background-image:
+      linear-gradient(to right, rgba(71, 85, 105, .14) calc(1px / var(--canvas-scale)), transparent calc(1px / var(--canvas-scale))),
+      linear-gradient(to bottom, rgba(71, 85, 105, .14) calc(1px / var(--canvas-scale)), transparent calc(1px / var(--canvas-scale)));
+  }
+}

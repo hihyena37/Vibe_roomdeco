@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Header from '../components/Header.jsx';
 import FurniturePanel from '../components/FurniturePanel.jsx';
-import RoomCanvas, { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition } from '../components/RoomCanvas.jsx';
+import RoomCanvas from '../components/RoomCanvas.jsx';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition } from '../utils/roomGeometry.js';
 import InspectorPanel from '../components/InspectorPanel.jsx';
 import MobileBottomBar from '../components/MobileBottomBar.jsx';
 import MobileBottomSheet from '../components/MobileBottomSheet.jsx';
@@ -225,8 +226,7 @@ export default function RoomEditor({ space, onBackToSpaces }) {
         selectedFurnitureData={selectedFurnitureData}
         onRotate={handleRotate}
         onDelete={handleDelete}
-        onBringForward={handleBringForward}
-        onDeselect={() => setSelectedItemId(null)}
+        onOpenInspector={() => setIsMobileInspectorOpen(true)}
       />
 
       {/* Mobile Furniture Catalog Bottom Sheet */}
@@ -266,3 +266,4 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 
 /**
  * FurnitureGraphic
@@ -8,6 +8,7 @@ import React, { useState } from 'react';
  */
 export default function FurnitureGraphic({ furniture, width, height, isThumbnail = false }) {
   const [imageError, setImageError] = useState(false);
+  const graphicId = useId().replace(/:/g, '');
 
   // If there's an image and no error, try loading the image
   // For now default to SVG placeholder as images are not present
@@ -55,12 +56,12 @@ export default function FurnitureGraphic({ furniture, width, height, isThumbnail
         style={{ display: 'block', overflow: 'visible' }}
       >
         <defs>
-          <filter id={`shadow-${furniture.id}`} x="-10%" y="-10%" width="120%" height="125%">
+          <filter id={`shadow-${graphicId}`} x="-10%" y="-10%" width="120%" height="125%">
             <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.12" />
           </filter>
         </defs>
 
-        {renderShape(shape, w, h, primary, secondary, furniture.id)}
+        {renderShape(shape, w, h, primary, secondary, graphicId)}
       </svg>
       {!isThumbnail && (
         <span
