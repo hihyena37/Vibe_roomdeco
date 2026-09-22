@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Header from '../components/Header.jsx';
 import FurniturePanel from '../components/FurniturePanel.jsx';
-import RoomCanvas, { CANVAS_WIDTH, CANVAS_HEIGHT } from '../components/RoomCanvas.jsx';
+import RoomCanvas, { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition } from '../components/RoomCanvas.jsx';
 import InspectorPanel from '../components/InspectorPanel.jsx';
 import MobileBottomBar from '../components/MobileBottomBar.jsx';
 import MobileBottomSheet from '../components/MobileBottomSheet.jsx';
@@ -36,27 +36,32 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     return selectedItem ? getFurnitureById(selectedItem.furnitureId) : null;
   }, [selectedItem]);
 
-  // Handler: Add Furniture to Canvas
+  // Handler: Add Furniture to Canvas (snapped to grid and clamped)
   const handleAddFurniture = useCallback((furniture) => {
     const instanceId = `inst_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
-    // Place near center with slight random offset
+    // Place near center with slight random offset aligned to grid
     const centerX = (CANVAS_WIDTH - furniture.width) / 2;
     const centerY = (CANVAS_HEIGHT - furniture.height) / 2;
-    const offsetRange = 60;
-    const offsetX = Math.round((Math.random() - 0.5) * offsetRange);
-    const offsetY = Math.round((Math.random() - 0.5) * offsetRange);
+    const offsetSteps = [-1, 0, 1];
+    const offsetX = offsetSteps[Math.floor(Math.random() * offsetSteps.length)] * GRID_SIZE;
+    const offsetY = offsetSteps[Math.floor(Math.random() * offsetSteps.length)] * GRID_SIZE;
 
-    const initialX = Math.max(10, Math.min(CANVAS_WIDTH - furniture.width - 10, centerX + offsetX));
-    const initialY = Math.max(10, Math.min(CANVAS_HEIGHT - furniture.height - 10, centerY + offsetY));
+    const { x: initialX, y: initialY } = snapAndClampPosition(
+      centerX + offsetX,
+      centerY + offsetY,
+      furniture.width,
+      furniture.height,
+      0
+    );
 
     const maxZ = placedItems.reduce((max, it) => Math.max(max, it.zIndex || 1), 1);
 
     const newItem = {
       instanceId,
       furnitureId: furniture.id,
-      x: Math.round(initialX),
-      y: Math.round(initialY),
+      x: initialX,
+      y: initialY,
       rotation: 0,
       zIndex: maxZ + 1,
     };
@@ -79,15 +84,30 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     );
   }, []);
 
-  // Handler: Rotate Selected Item 90 degrees
+  // Handler: Rotate Selected Item 90 degrees with boundary clamping
   const handleRotate = useCallback(() => {
     if (!selectedItemId) return;
     setPlacedItems((prev) =>
-      prev.map((item) =>
-        item.instanceId === selectedItemId
-          ? { ...item, rotation: ((item.rotation || 0) + 90) % 360 }
-          : item
-      )
+      prev.map((item) => {
+        if (item.instanceId !== selectedItemId) return item;
+        const furnitureData = getFurnitureById(item.furnitureId);
+        const newRotation = ((item.rotation || 0) + 90) % 360;
+        const width = furnitureData ? furnitureData.width : 80;
+        const height = furnitureData ? furnitureData.height : 60;
+        const { x: clampedX, y: clampedY } = snapAndClampPosition(
+          item.x,
+          item.y,
+          width,
+          height,
+          newRotation
+        );
+        return {
+          ...item,
+          rotation: newRotation,
+          x: clampedX,
+          y: clampedY,
+        };
+      })
     );
   }, [selectedItemId]);
 
@@ -198,13 +218,15 @@ export default function RoomEditor({ space, onBackToSpaces }) {
         </div>
       </div>
 
-      {/* Mobile Bottom Toolbar */}
+      {/* Mobile Bottom Controls (Editing Toolbar + Add Button) */}
       <MobileBottomBar
         onOpenCatalog={() => setIsMobileCatalogOpen(true)}
         selectedItem={selectedItem}
+        selectedFurnitureData={selectedFurnitureData}
         onRotate={handleRotate}
         onDelete={handleDelete}
-        onOpenInspector={() => setIsMobileInspectorOpen(true)}
+        onBringForward={handleBringForward}
+        onDeselect={() => setSelectedItemId(null)}
       />
 
       {/* Mobile Furniture Catalog Bottom Sheet */}

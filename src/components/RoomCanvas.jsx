@@ -5,6 +5,53 @@ import '../styles/canvas.css';
 
 export const CANVAS_WIDTH = 960;
 export const CANVAS_HEIGHT = 640;
+export const GRID_SIZE = 32;
+
+/**
+ * Calculate visual boundary limits taking 90/270 degree rotation into account.
+ */
+export function getItemBounds(width, height, rotation = 0) {
+  const isRotated90 = rotation % 180 !== 0;
+  let minX, maxX, minY, maxY;
+
+  if (isRotated90) {
+    minX = (height - width) / 2;
+    maxX = CANVAS_WIDTH - (width + height) / 2;
+    minY = (width - height) / 2;
+    maxY = CANVAS_HEIGHT - (width + height) / 2;
+  } else {
+    minX = 0;
+    maxX = CANVAS_WIDTH - width;
+    minY = 0;
+    maxY = CANVAS_HEIGHT - height;
+  }
+
+  maxX = Math.max(minX, maxX);
+  maxY = Math.max(minY, maxY);
+
+  return { minX, maxX, minY, maxY };
+}
+
+/**
+ * Snap coordinates to GRID_SIZE while strictly constraining within canvas boundaries.
+ */
+export function snapAndClampPosition(rawX, rawY, width, height, rotation = 0) {
+  const { minX, maxX, minY, maxY } = getItemBounds(width, height, rotation);
+
+  // 1. Boundary restriction
+  const clampedX = Math.max(minX, Math.min(maxX, rawX));
+  const clampedY = Math.max(minY, Math.min(maxY, rawY));
+
+  // 2. Grid Snap (32px grid)
+  let snappedX = Math.round(clampedX / GRID_SIZE) * GRID_SIZE;
+  let snappedY = Math.round(clampedY / GRID_SIZE) * GRID_SIZE;
+
+  // 3. Final clamp to guarantee it stays inside room
+  snappedX = Math.max(minX, Math.min(maxX, snappedX));
+  snappedY = Math.max(minY, Math.min(maxY, snappedY));
+
+  return { x: snappedX, y: snappedY };
+}
 
 export default function RoomCanvas({
   space,
@@ -26,15 +73,17 @@ export default function RoomCanvas({
       const { clientWidth, clientHeight } = containerRef.current;
       if (!clientWidth || !clientHeight) return;
 
-      const paddingX = clientWidth < 600 ? 16 : 48;
-      const paddingY = clientWidth < 600 ? 16 : 48;
+      const isMobile = window.innerWidth <= 767;
+      // On mobile, keep ~14px margin on each side (total 28px)
+      const marginX = isMobile ? 28 : 48;
+      const marginY = isMobile ? 20 : 48;
 
-      const scaleX = (clientWidth - paddingX) / CANVAS_WIDTH;
-      const scaleY = (clientHeight - paddingY) / CANVAS_HEIGHT;
+      const scaleX = (clientWidth - marginX) / CANVAS_WIDTH;
+      const scaleY = (clientHeight - marginY) / CANVAS_HEIGHT;
 
-      // Fit inside container, max scale 1 (do not enlarge beyond native on huge monitors)
+      // Fit inside container, max scale 1 (do not upscale beyond 100% on huge screens)
       const fittedScale = Math.min(scaleX, scaleY, 1);
-      setScale(Math.max(0.3, fittedScale));
+      setScale(Math.max(0.25, fittedScale));
     };
 
     updateScale();
@@ -80,7 +129,7 @@ export default function RoomCanvas({
     };
   }, [placedItems, onSelectItem, scale]);
 
-  // Pointer Move
+  // Pointer Move with Grid Snap + Boundary Clamp
   const handlePointerMove = useCallback((e) => {
     if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
 
@@ -91,23 +140,24 @@ export default function RoomCanvas({
     const furnitureData = getFurnitureById(currentItem.furnitureId);
     const itemWidth = furnitureData ? furnitureData.width : 80;
     const itemHeight = furnitureData ? furnitureData.height : 60;
+    const itemRotation = currentItem.rotation || 0;
 
-    // Convert screen pixel delta to canvas pixel delta using the scale factor!
+    // Convert screen pixel delta to canvas pixel delta using the scale factor
     const effectiveScale = dragScale || 1;
     const dx = (e.clientX - startX) / effectiveScale;
     const dy = (e.clientY - startY) / effectiveScale;
 
-    let newX = initialX + dx;
-    let newY = initialY + dy;
+    const rawX = initialX + dx;
+    const rawY = initialY + dy;
 
-    // Boundary constraints: Keep item inside the 960x640 canvas
-    const minX = 0;
-    const maxX = Math.max(0, CANVAS_WIDTH - itemWidth);
-    const minY = 0;
-    const maxY = Math.max(0, CANVAS_HEIGHT - itemHeight);
-
-    newX = Math.max(minX, Math.min(maxX, Math.round(newX)));
-    newY = Math.max(minY, Math.min(maxY, Math.round(newY)));
+    // Apply boundary constraint and grid snap
+    const { x: newX, y: newY } = snapAndClampPosition(
+      rawX,
+      rawY,
+      itemWidth,
+      itemHeight,
+      itemRotation
+    );
 
     onUpdateItemPosition(instanceId, newX, newY);
   }, [placedItems, onUpdateItemPosition]);
@@ -130,7 +180,12 @@ export default function RoomCanvas({
 
   // Canvas background click -> Deselect
   const handleCanvasClick = useCallback((e) => {
-    if (e.target === canvasRef.current || e.target.classList.contains('canvas-grid-overlay') || e.target.closest('.canvas-empty-guide')) {
+    if (
+      e.target === canvasRef.current ||
+      e.target.classList.contains('canvas-grid-overlay') ||
+      e.target.closest('.canvas-empty-guide') ||
+      e.target === containerRef.current
+    ) {
       onSelectItem(null);
     }
   }, [onSelectItem]);
@@ -141,15 +196,14 @@ export default function RoomCanvas({
       className="room-canvas-container"
       onClick={handleCanvasClick}
     >
-      {/* Scaled Canvas Wrapper for layout centering */}
+      {/* Scaled Canvas Wrapper for layout centering without flex-misalignment */}
       <div
         className="room-canvas-scale-wrapper"
         style={{
           width: `${CANVAS_WIDTH * scale}px`,
           height: `${CANVAS_HEIGHT * scale}px`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'relative',
+          margin: 'auto',
           flexShrink: 0,
         }}
       >
@@ -157,6 +211,9 @@ export default function RoomCanvas({
           ref={canvasRef}
           className="room-canvas"
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: `${CANVAS_WIDTH}px`,
             height: `${CANVAS_HEIGHT}px`,
             transform: `scale(${scale})`,
