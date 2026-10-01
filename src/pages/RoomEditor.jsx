@@ -139,6 +139,7 @@ export default function RoomEditor({ space, onBackToSpaces }) {
       furnitureId: furniture.id,
       x: initialX,
       y: initialY,
+      scale: 1,
       rotation: 0,
       zIndex: maxZ + 1,
     };
@@ -161,6 +162,17 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     );
   }, [updateTransient]);
 
+  // Handler: Update Item Scale & Position during Resize (transient, no history spam)
+  const handleUpdateScaleAndPosition = useCallback((instanceId, newScale, newX, newY) => {
+    updateTransient((prev) =>
+      prev.map((item) =>
+        item.instanceId === instanceId
+          ? { ...item, scale: newScale, x: newX, y: newY }
+          : item
+      )
+    );
+  }, [updateTransient]);
+
   // Handler: Rotate Selected Item 90 degrees with boundary clamping
   const handleRotate = useCallback(() => {
     if (!selectedItemId) return;
@@ -169,8 +181,9 @@ export default function RoomEditor({ space, onBackToSpaces }) {
         if (item.instanceId !== selectedItemId) return item;
         const furnitureData = getFurnitureById(item.furnitureId);
         const newRotation = ((item.rotation || 0) + 90) % 360;
-        const width = furnitureData ? furnitureData.width : 80;
-        const height = furnitureData ? furnitureData.height : 60;
+        const itemScale = typeof item.scale === 'number' ? item.scale : 1;
+        const width = (furnitureData ? furnitureData.width : 80) * itemScale;
+        const height = (furnitureData ? furnitureData.height : 60) * itemScale;
         const { x: clampedX, y: clampedY } = snapAndClampPosition(
           item.x,
           item.y,
@@ -188,13 +201,14 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     );
   }, [selectedItemId, applyAction]);
 
-  // Handler: Duplicate Selected Item
+  // Handler: Duplicate Selected Item (preserving scale)
   const handleDuplicate = useCallback(() => {
     if (!selectedItem) return;
 
     const furnitureData = getFurnitureById(selectedItem.furnitureId);
-    const width = furnitureData ? furnitureData.width : 80;
-    const height = furnitureData ? furnitureData.height : 60;
+    const itemScale = typeof selectedItem.scale === 'number' ? selectedItem.scale : 1;
+    const width = (furnitureData ? furnitureData.width : 80) * itemScale;
+    const height = (furnitureData ? furnitureData.height : 60) * itemScale;
     const rotation = selectedItem.rotation || 0;
 
     // Offset by GRID_SIZE (one grid unit) to bottom-right
@@ -216,6 +230,7 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     const newItem = {
       ...selectedItem,
       instanceId: newInstanceId,
+      scale: itemScale,
       x: newX,
       y: newY,
       rotation,
@@ -322,9 +337,13 @@ export default function RoomEditor({ space, onBackToSpaces }) {
           selectedItemId={selectedItemId}
           onSelectItem={setSelectedItemId}
           onUpdateItemPosition={handleUpdatePosition}
+          onUpdateItemScaleAndPosition={handleUpdateScaleAndPosition}
           onDragStart={startDragTransaction}
           onDragEnd={commitDragTransaction}
           onDragCancel={cancelDragTransaction}
+          onResizeStart={startDragTransaction}
+          onResizeEnd={commitDragTransaction}
+          onResizeCancel={cancelDragTransaction}
         />
 
         {/* Inspector Panel (Desktop & Tablet Drawer) */}

@@ -3,7 +3,7 @@ import FurnitureItem from './FurnitureItem.jsx';
 import { getFurnitureById } from '../data/furniture.js';
 import '../styles/canvas.css';
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition } from '../utils/roomGeometry.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_SIZE, snapAndClampPosition, calculateResizeGeometry } from '../utils/roomGeometry.js';
 
 export default function RoomCanvas({
   space,
@@ -11,15 +11,21 @@ export default function RoomCanvas({
   selectedItemId,
   onSelectItem,
   onUpdateItemPosition,
+  onUpdateItemScaleAndPosition,
   onDragStart,
   onDragEnd,
   onDragCancel,
+  onResizeStart,
+  onResizeEnd,
+  onResizeCancel,
 }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const [scale, setScale] = useState(1);
   const [draggingId, setDraggingId] = useState(null);
+  const [resizingInfo, setResizingInfo] = useState(null);
   const dragRef = useRef(null);
+  const resizeRef = useRef(null);
 
   // Measure container and compute canvas scale to fit any screen (PC, Tablet, Mobile)
   useEffect(() => {
@@ -55,9 +61,9 @@ export default function RoomCanvas({
     };
   }, []);
 
-  // Pointer Down on furniture item
+  // Pointer Down on furniture item (Moving drag)
   const handleItemPointerDown = useCallback((e, instanceId) => {
-    if (dragRef.current || !e.isPrimary) return;
+    if (dragRef.current || resizeRef.current || !e.isPrimary) return;
     if (e.button !== undefined && e.button !== 0) return;
 
     e.stopPropagation();
@@ -80,70 +86,213 @@ export default function RoomCanvas({
       initialX: currentItem.x,
       initialY: currentItem.y,
       instanceId,
-      scale, // Save current scale for coordinate conversion
+      scale, // Save current canvasScale for coordinate conversion
       targetElement: e.currentTarget,
     };
 
     onDragStart?.();
   }, [placedItems, onSelectItem, scale, onDragStart]);
 
-  // Pointer Move with Grid Snap + Boundary Clamp
-  const handlePointerMove = useCallback((e) => {
-    if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
+  // Pointer Down on Resize Handle
+  const handleResizeStart = useCallback((e, instanceId, handle) => {
+    if (dragRef.current || resizeRef.current || !e.isPrimary) return;
+    if (e.button !== undefined && e.button !== 0) return;
 
-    const { startX, startY, initialX, initialY, instanceId, scale: dragScale } = dragRef.current;
+    e.stopPropagation();
+
     const currentItem = placedItems.find((it) => it.instanceId === instanceId);
     if (!currentItem) return;
 
     const furnitureData = getFurnitureById(currentItem.furnitureId);
-    const itemWidth = furnitureData ? furnitureData.width : 80;
-    const itemHeight = furnitureData ? furnitureData.height : 60;
-    const itemRotation = currentItem.rotation || 0;
+    if (!furnitureData) return;
 
-    // Convert screen pixel delta to canvas pixel delta using the scale factor
-    const effectiveScale = dragScale || 1;
-    const dx = (e.clientX - startX) / effectiveScale;
-    const dy = (e.clientY - startY) / effectiveScale;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
 
-    const rawX = initialX + dx;
-    const rawY = initialY + dy;
+    setResizingInfo({ instanceId, handle });
+    resizeRef.current = {
+      pointerId: e.pointerId,
+      targetElement: e.currentTarget,
+      instanceId,
+      handle,
+      startPointerX: e.clientX,
+      startPointerY: e.clientY,
+      lastPointerX: e.clientX,
+      lastPointerY: e.clientY,
+      initialItem: { ...currentItem },
+      baseWidth: furnitureData.width,
+      baseHeight: furnitureData.height,
+      canvasScale: scale,
+    };
 
-    // Apply boundary constraint and grid snap
-    const { x: newX, y: newY } = snapAndClampPosition(
-      rawX,
-      rawY,
-      itemWidth,
-      itemHeight,
-      itemRotation
-    );
+    onResizeStart?.();
+  }, [placedItems, scale, onResizeStart]);
 
-    onUpdateItemPosition(instanceId, newX, newY);
-  }, [placedItems, onUpdateItemPosition]);
+  // Pointer Move with Grid Snap + Boundary Clamp & Resize support
+  const handlePointerMove = useCallback((e) => {
+    // 1. Resizing active
+    if (resizeRef.current && resizeRef.current.pointerId === e.pointerId) {
+      const {
+        handle,
+        startPointerX,
+        startPointerY,
+        initialItem,
+        baseWidth,
+        baseHeight,
+        canvasScale,
+        instanceId,
+      } = resizeRef.current;
+
+      resizeRef.current.lastPointerX = e.clientX;
+      resizeRef.current.lastPointerY = e.clientY;
+
+      const effectiveScale = canvasScale || 1;
+      const deltaCanvasX = (e.clientX - startPointerX) / effectiveScale;
+      const deltaCanvasY = (e.clientY - startPointerY) / effectiveScale;
+
+      const result = calculateResizeGeometry({
+        handle,
+        isAlt: e.altKey, // Mac Option key sets e.altKey to true as well
+        initialItem,
+        baseWidth,
+        baseHeight,
+        deltaCanvasX,
+        deltaCanvasY,
+      });
+
+      onUpdateItemScaleAndPosition?.(instanceId, result.scale, result.x, result.y);
+      return;
+    }
+
+    // 2. Position Drag active
+    if (dragRef.current && dragRef.current.pointerId === e.pointerId) {
+      const { startX, startY, initialX, initialY, instanceId, scale: dragScale } = dragRef.current;
+      const currentItem = placedItems.find((it) => it.instanceId === instanceId);
+      if (!currentItem) return;
+
+      const furnitureData = getFurnitureById(currentItem.furnitureId);
+      const itemScale = typeof currentItem.scale === 'number' ? currentItem.scale : 1;
+      const itemWidth = (furnitureData ? furnitureData.width : 80) * itemScale;
+      const itemHeight = (furnitureData ? furnitureData.height : 60) * itemScale;
+      const itemRotation = currentItem.rotation || 0;
+
+      // Convert screen pixel delta to canvas pixel delta using the scale factor
+      const effectiveScale = dragScale || 1;
+      const dx = (e.clientX - startX) / effectiveScale;
+      const dy = (e.clientY - startY) / effectiveScale;
+
+      const rawX = initialX + dx;
+      const rawY = initialY + dy;
+
+      // Apply boundary constraint and grid snap
+      const { x: newX, y: newY } = snapAndClampPosition(
+        rawX,
+        rawY,
+        itemWidth,
+        itemHeight,
+        itemRotation
+      );
+
+      onUpdateItemPosition?.(instanceId, newX, newY);
+    }
+  }, [placedItems, onUpdateItemPosition, onUpdateItemScaleAndPosition]);
+
+  // Handle Alt key dynamically during active resize even without moving the mouse
+  useEffect(() => {
+    const handleKeyChange = (e) => {
+      if (!resizeRef.current) return;
+      if (e.key === 'Alt') {
+        const {
+          handle,
+          startPointerX,
+          startPointerY,
+          initialItem,
+          baseWidth,
+          baseHeight,
+          canvasScale,
+          instanceId,
+          lastPointerX,
+          lastPointerY,
+        } = resizeRef.current;
+
+        const effectiveScale = canvasScale || 1;
+        const deltaCanvasX = (lastPointerX - startPointerX) / effectiveScale;
+        const deltaCanvasY = (lastPointerY - startPointerY) / effectiveScale;
+
+        const result = calculateResizeGeometry({
+          handle,
+          isAlt: e.type === 'keydown',
+          initialItem,
+          baseWidth,
+          baseHeight,
+          deltaCanvasX,
+          deltaCanvasY,
+        });
+
+        onUpdateItemScaleAndPosition?.(instanceId, result.scale, result.x, result.y);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyChange);
+    window.addEventListener('keyup', handleKeyChange);
+    return () => {
+      window.removeEventListener('keydown', handleKeyChange);
+      window.removeEventListener('keyup', handleKeyChange);
+    };
+  }, [onUpdateItemScaleAndPosition]);
 
   // Pointer Up / Cancel
   const handlePointerEnd = useCallback((e) => {
-    if (!dragRef.current || dragRef.current.pointerId !== e.pointerId) return;
-    if (e.type === 'pointerup') handlePointerMove(e);
+    // 1. End Resize
+    if (resizeRef.current && resizeRef.current.pointerId === e.pointerId) {
+      if (e.type === 'pointerup') handlePointerMove(e);
 
-    if (dragRef.current.targetElement) {
-      try {
-        dragRef.current.targetElement.releasePointerCapture(e.pointerId);
-      } catch {
-        // Ignore
+      if (resizeRef.current.targetElement) {
+        try {
+          resizeRef.current.targetElement.releasePointerCapture(e.pointerId);
+        } catch {
+          // Ignore
+        }
+      }
+
+      const isCancel = e.type === 'pointercancel';
+      resizeRef.current = null;
+      setResizingInfo(null);
+
+      if (isCancel) {
+        onResizeCancel?.();
+      } else {
+        onResizeEnd?.();
+      }
+      return;
+    }
+
+    // 2. End Drag
+    if (dragRef.current && dragRef.current.pointerId === e.pointerId) {
+      if (e.type === 'pointerup') handlePointerMove(e);
+
+      if (dragRef.current.targetElement) {
+        try {
+          dragRef.current.targetElement.releasePointerCapture(e.pointerId);
+        } catch {
+          // Ignore
+        }
+      }
+
+      const isCancel = e.type === 'pointercancel';
+      dragRef.current = null;
+      setDraggingId(null);
+
+      if (isCancel) {
+        onDragCancel?.();
+      } else {
+        onDragEnd?.();
       }
     }
-
-    const isCancel = e.type === 'pointercancel';
-
-    dragRef.current = null;
-    setDraggingId(null);
-
-    if (isCancel) {
-      onDragCancel?.();
-    } else {
-      onDragEnd?.();
-    }
-  }, [handlePointerMove, onDragEnd, onDragCancel]);
+  }, [handlePointerMove, onDragEnd, onDragCancel, onResizeEnd, onResizeCancel]);
 
   // Canvas background click -> Deselect
   const handleCanvasClick = useCallback((e) => {
@@ -156,6 +305,16 @@ export default function RoomCanvas({
       onSelectItem(null);
     }
   }, [onSelectItem]);
+
+  // Dynamic cursor class for canvas during resize
+  let resizeCursorClass = '';
+  if (resizingInfo) {
+    if (resizingInfo.handle === 'tl' || resizingInfo.handle === 'br') {
+      resizeCursorClass = 'resizing-nwse';
+    } else if (resizingInfo.handle === 'tr' || resizingInfo.handle === 'bl') {
+      resizeCursorClass = 'resizing-nesw';
+    }
+  }
 
   return (
     <main
@@ -176,7 +335,7 @@ export default function RoomCanvas({
       >
         <div
           ref={canvasRef}
-          className="room-canvas"
+          className={`room-canvas ${resizeCursorClass}`}
           style={{
             position: 'absolute',
             top: 0,
@@ -221,7 +380,9 @@ export default function RoomCanvas({
                 furnitureData={furnitureData}
                 isSelected={item.instanceId === selectedItemId}
                 isDragging={item.instanceId === draggingId}
+                isResizing={resizingInfo?.instanceId === item.instanceId}
                 onPointerDown={handleItemPointerDown}
+                onResizeStart={handleResizeStart}
                 onClick={onSelectItem}
               />
             );
@@ -235,4 +396,5 @@ export default function RoomCanvas({
     </main>
   );
 }
+
 

@@ -124,18 +124,82 @@
   pointer-events: none;
 }
 
-/* Rotation indicator ring */
+/* Selected Corner Dot Resize Handles */
 .selected-corner-dot {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background-color: #FFFFFF;
   border: 2px solid var(--primary);
   border-radius: 50%;
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 20;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.corner-tl { top: -6px; left: -6px; }
-.corner-tr { top: -6px; right: -6px; }
-.corner-bl { bottom: -6px; left: -6px; }
-.corner-br { bottom: -6px; right: -6px; }
+/* Expanded invisible touch hitbox for mobile & easier mouse grasping */
+.selected-corner-dot::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  border-radius: 50%;
+}
+
+.selected-corner-dot:hover {
+  transform: scale(1.3);
+  background-color: var(--primary);
+  border-color: #FFFFFF;
+}
+
+.selected-corner-dot:active {
+  transform: scale(1.4);
+  background-color: var(--primary);
+}
+
+.corner-tl {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.corner-tr {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.corner-bl {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.corner-br {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+/* Resizing active states */
+.furniture-item.resizing {
+  outline: 2.5px dashed var(--primary) !important;
+  outline-offset: 4px;
+}
+
+.room-canvas.resizing-nwse,
+.room-canvas.resizing-nwse * {
+  cursor: nwse-resize !important;
+}
+
+.room-canvas.resizing-nesw,
+.room-canvas.resizing-nesw * {
+  cursor: nesw-resize !important;
+}
+

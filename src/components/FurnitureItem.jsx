@@ -6,23 +6,33 @@ export default function FurnitureItem({
   furnitureData,
   isSelected,
   isDragging,
+  isResizing,
   onPointerDown,
+  onResizeStart,
   onClick,
 }) {
   if (!furnitureData) return null;
 
-  const { width, height } = furnitureData;
+  const scale = typeof item.scale === 'number' ? item.scale : 1;
+  const actualWidth = Math.round(furnitureData.width * scale);
+  const actualHeight = Math.round(furnitureData.height * scale);
   const { x, y, rotation = 0, zIndex = 1 } = item;
+
+  const handleCornerPointerDown = (e, handle) => {
+    // Crucial: prevent drag moving of the entire furniture
+    e.stopPropagation();
+    onResizeStart?.(e, item.instanceId, handle);
+  };
 
   return (
     <div
-      className={`furniture-item ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`furniture-item ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
+        width: `${actualWidth}px`,
+        height: `${actualHeight}px`,
         transform: `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg)`,
         transformOrigin: 'center center',
-        zIndex: isDragging ? 9999 : zIndex,
+        zIndex: isDragging || isResizing ? 9999 : zIndex,
       }}
       onPointerDown={(e) => {
         // Prevent event from bubbling to canvas click deselect
@@ -39,18 +49,42 @@ export default function FurnitureItem({
     >
       <FurnitureGraphic
         furniture={furnitureData}
-        width={width}
-        height={height}
+        width={actualWidth}
+        height={actualHeight}
         isThumbnail={false}
       />
 
-      {/* Selected UI indicators */}
+      {/* Selected UI indicators & Resize handles */}
       {isSelected && (
         <>
-          <div className="selected-corner-dot corner-tl" />
-          <div className="selected-corner-dot corner-tr" />
-          <div className="selected-corner-dot corner-bl" />
-          <div className="selected-corner-dot corner-br" />
+          <div
+            className="selected-corner-dot corner-tl"
+            onPointerDown={(e) => handleCornerPointerDown(e, 'tl')}
+            role="separator"
+            aria-label="좌상단 크기 조절 핸들"
+            title="크기 조절 (드래그, Alt: 중심 고정)"
+          />
+          <div
+            className="selected-corner-dot corner-tr"
+            onPointerDown={(e) => handleCornerPointerDown(e, 'tr')}
+            role="separator"
+            aria-label="우상단 크기 조절 핸들"
+            title="크기 조절 (드래그, Alt: 중심 고정)"
+          />
+          <div
+            className="selected-corner-dot corner-bl"
+            onPointerDown={(e) => handleCornerPointerDown(e, 'bl')}
+            role="separator"
+            aria-label="좌하단 크기 조절 핸들"
+            title="크기 조절 (드래그, Alt: 중심 고정)"
+          />
+          <div
+            className="selected-corner-dot corner-br"
+            onPointerDown={(e) => handleCornerPointerDown(e, 'br')}
+            role="separator"
+            aria-label="우하단 크기 조절 핸들"
+            title="크기 조절 (드래그, Alt: 중심 고정)"
+          />
           <div className="selected-badge-indicator" title={`${rotation}°`}>
             {rotation !== 0 ? `${rotation}°` : '✓'}
           </div>

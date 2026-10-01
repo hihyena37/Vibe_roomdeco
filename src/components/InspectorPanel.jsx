@@ -58,20 +58,33 @@ export default function InspectorPanel({
             </div>
 
             {/* Information Table */}
-            <div className="inspector-details-table">
-              <div className="inspector-detail-row">
-                <span className="detail-label">크기 (가로×세로)</span>
-                <span className="detail-val">{furnitureData.width} × {furnitureData.height} px</span>
-              </div>
-              <div className="inspector-detail-row">
-                <span className="detail-label">현재 회전각</span>
-                <span className="detail-val">{selectedItem.rotation || 0}°</span>
-              </div>
-              <div className="inspector-detail-row">
-                <span className="detail-label">위치 좌표</span>
-                <span className="detail-val">X: {selectedItem.x}, Y: {selectedItem.y}</span>
-              </div>
-            </div>
+            {(() => {
+              const currentScale = typeof selectedItem.scale === 'number' ? selectedItem.scale : 1;
+              const actualWidth = Math.round(furnitureData.width * currentScale);
+              const actualHeight = Math.round(furnitureData.height * currentScale);
+              const scalePercent = Math.round(currentScale * 100);
+
+              return (
+                <div className="inspector-details-table">
+                  <div className="inspector-detail-row">
+                    <span className="detail-label">크기 (가로×세로)</span>
+                    <span className="detail-val">{actualWidth} × {actualHeight} px</span>
+                  </div>
+                  <div className="inspector-detail-row">
+                    <span className="detail-label">크기 배율 (Scale)</span>
+                    <span className="detail-val">{scalePercent}%</span>
+                  </div>
+                  <div className="inspector-detail-row">
+                    <span className="detail-label">현재 회전각</span>
+                    <span className="detail-val">{selectedItem.rotation || 0}°</span>
+                  </div>
+                  <div className="inspector-detail-row">
+                    <span className="detail-label">위치 좌표</span>
+                    <span className="detail-val">X: {selectedItem.x}, Y: {selectedItem.y}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Action Buttons */}
             <div className="inspector-actions">

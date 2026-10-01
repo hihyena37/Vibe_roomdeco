@@ -14,7 +14,10 @@ export function loadItemsFromStorage(spaceId) {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.map((item) => ({
+          ...item,
+          scale: typeof item.scale === 'number' ? item.scale : 1,
+        }));
       }
     }
   } catch (err) {
