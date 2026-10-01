@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Header from '../components/Header.jsx';
 import FurniturePanel from '../components/FurniturePanel.jsx';
 import RoomCanvas from '../components/RoomCanvas.jsx';
@@ -7,11 +7,25 @@ import InspectorPanel from '../components/InspectorPanel.jsx';
 import MobileBottomBar from '../components/MobileBottomBar.jsx';
 import MobileBottomSheet from '../components/MobileBottomSheet.jsx';
 import { getFurnitureByCategory, getFurnitureById } from '../data/furniture.js';
+import { useRoomHistory } from '../hooks/useRoomHistory.js';
 import '../styles/roomeditor.css';
 import '../styles/responsive.css';
 
 export default function RoomEditor({ space, onBackToSpaces }) {
-  const [placedItems, setPlacedItems] = useState([]);
+  const {
+    placedItems,
+    canUndo,
+    canRedo,
+    applyAction,
+    updateTransient,
+    startDragTransaction,
+    commitDragTransaction,
+    cancelDragTransaction,
+    undo,
+    redo,
+    resetRoom,
+  } = useRoomHistory(space.id);
+
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -36,6 +50,68 @@ export default function RoomEditor({ space, onBackToSpaces }) {
   const selectedFurnitureData = useMemo(() => {
     return selectedItem ? getFurnitureById(selectedItem.furnitureId) : null;
   }, [selectedItem]);
+
+  // Undo / Redo handlers with selection recovery
+  const handleUndo = useCallback(() => {
+    const restored = undo();
+    if (restored) {
+      setSelectedItemId((prevId) => {
+        if (prevId && !restored.some((it) => it.instanceId === prevId)) {
+          setIsMobileInspectorOpen(false);
+          return null;
+        }
+        return prevId;
+      });
+    }
+  }, [undo]);
+
+  const handleRedo = useCallback(() => {
+    const restored = redo();
+    if (restored) {
+      setSelectedItemId((prevId) => {
+        if (prevId && !restored.some((it) => it.instanceId === prevId)) {
+          setIsMobileInspectorOpen(false);
+          return null;
+        }
+        return prevId;
+      });
+    }
+  }, [redo]);
+
+  // Keyboard shortcuts: Ctrl+Z (Undo), Ctrl+Shift+Z or Ctrl+Y (Redo)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrMeta) return;
+
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleUndo, handleRedo]);
 
   // Handler: Add Furniture to Canvas (snapped to grid and clamped)
   const handleAddFurniture = useCallback((furniture) => {
@@ -67,28 +143,28 @@ export default function RoomEditor({ space, onBackToSpaces }) {
       zIndex: maxZ + 1,
     };
 
-    setPlacedItems((prev) => [...prev, newItem]);
+    applyAction((prev) => [...prev, newItem]);
     setSelectedItemId(instanceId);
 
     // On mobile, close catalog sheet after adding so user can see their added item immediately!
     setIsMobileCatalogOpen(false);
-  }, [placedItems]);
+  }, [placedItems, applyAction]);
 
-  // Handler: Update Item Position during Drag
+  // Handler: Update Item Position during Drag (transient, no history spam)
   const handleUpdatePosition = useCallback((instanceId, newX, newY) => {
-    setPlacedItems((prev) =>
+    updateTransient((prev) =>
       prev.map((item) =>
         item.instanceId === instanceId
           ? { ...item, x: newX, y: newY }
           : item
       )
     );
-  }, []);
+  }, [updateTransient]);
 
   // Handler: Rotate Selected Item 90 degrees with boundary clamping
   const handleRotate = useCallback(() => {
     if (!selectedItemId) return;
-    setPlacedItems((prev) =>
+    applyAction((prev) =>
       prev.map((item) => {
         if (item.instanceId !== selectedItemId) return item;
         const furnitureData = getFurnitureById(item.furnitureId);
@@ -110,50 +186,88 @@ export default function RoomEditor({ space, onBackToSpaces }) {
         };
       })
     );
-  }, [selectedItemId]);
+  }, [selectedItemId, applyAction]);
+
+  // Handler: Duplicate Selected Item
+  const handleDuplicate = useCallback(() => {
+    if (!selectedItem) return;
+
+    const furnitureData = getFurnitureById(selectedItem.furnitureId);
+    const width = furnitureData ? furnitureData.width : 80;
+    const height = furnitureData ? furnitureData.height : 60;
+    const rotation = selectedItem.rotation || 0;
+
+    // Offset by GRID_SIZE (one grid unit) to bottom-right
+    const rawX = selectedItem.x + GRID_SIZE;
+    const rawY = selectedItem.y + GRID_SIZE;
+
+    // Clamp within room boundaries using roomGeometry logic
+    const { x: newX, y: newY } = snapAndClampPosition(
+      rawX,
+      rawY,
+      width,
+      height,
+      rotation
+    );
+
+    const maxZ = placedItems.reduce((max, it) => Math.max(max, it.zIndex || 1), 1);
+    const newInstanceId = `inst_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
+    const newItem = {
+      ...selectedItem,
+      instanceId: newInstanceId,
+      x: newX,
+      y: newY,
+      rotation,
+      zIndex: maxZ + 1,
+    };
+
+    applyAction((prev) => [...prev, newItem]);
+    setSelectedItemId(newInstanceId);
+  }, [selectedItem, placedItems, applyAction]);
 
   // Handler: Delete Selected Item
   const handleDelete = useCallback(() => {
     if (!selectedItemId) return;
-    setPlacedItems((prev) => prev.filter((item) => item.instanceId !== selectedItemId));
+    applyAction((prev) => prev.filter((item) => item.instanceId !== selectedItemId));
     setSelectedItemId(null);
     setIsMobileInspectorOpen(false);
-  }, [selectedItemId]);
+  }, [selectedItemId, applyAction]);
 
   // Handler: Bring Forward / Send Backward
   const handleBringForward = useCallback(() => {
     if (!selectedItemId) return;
     const maxZ = placedItems.reduce((max, it) => Math.max(max, it.zIndex || 1), 1);
-    setPlacedItems((prev) =>
+    applyAction((prev) =>
       prev.map((item) =>
         item.instanceId === selectedItemId
           ? { ...item, zIndex: maxZ + 1 }
           : item
       )
     );
-  }, [selectedItemId, placedItems]);
+  }, [selectedItemId, placedItems, applyAction]);
 
   const handleSendBackward = useCallback(() => {
     if (!selectedItemId) return;
     const minZ = placedItems.reduce((min, it) => Math.min(min, it.zIndex || 1), 1);
-    setPlacedItems((prev) =>
+    applyAction((prev) =>
       prev.map((item) =>
         item.instanceId === selectedItemId
           ? { ...item, zIndex: Math.max(0, minZ - 1) }
           : item
       )
     );
-  }, [selectedItemId, placedItems]);
+  }, [selectedItemId, placedItems, applyAction]);
 
   // Handler: Room Reset with Confirm
   const handleReset = useCallback(() => {
     if (placedItems.length === 0) return;
     if (window.confirm('배치된 모든 가구를 삭제하고 방을 초기화하시겠습니까?')) {
-      setPlacedItems([]);
+      resetRoom();
       setSelectedItemId(null);
       setIsMobileInspectorOpen(false);
     }
-  }, [placedItems.length]);
+  }, [placedItems.length, resetRoom]);
 
   return (
     <div className="room-editor-page">
@@ -172,6 +286,10 @@ export default function RoomEditor({ space, onBackToSpaces }) {
           setIsTabletInspectorOpen((prev) => !prev);
           if (!isTabletInspectorOpen) setIsTabletFurnitureOpen(false);
         }}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
       />
 
       <div className="room-editor-body">
@@ -204,6 +322,9 @@ export default function RoomEditor({ space, onBackToSpaces }) {
           selectedItemId={selectedItemId}
           onSelectItem={setSelectedItemId}
           onUpdateItemPosition={handleUpdatePosition}
+          onDragStart={startDragTransaction}
+          onDragEnd={commitDragTransaction}
+          onDragCancel={cancelDragTransaction}
         />
 
         {/* Inspector Panel (Desktop & Tablet Drawer) */}
@@ -212,6 +333,7 @@ export default function RoomEditor({ space, onBackToSpaces }) {
             selectedItem={selectedItem}
             furnitureData={selectedFurnitureData}
             onRotate={handleRotate}
+            onDuplicate={handleDuplicate}
             onDelete={handleDelete}
             onBringForward={handleBringForward}
             onSendBackward={handleSendBackward}
@@ -257,6 +379,7 @@ export default function RoomEditor({ space, onBackToSpaces }) {
             selectedItem={selectedItem}
             furnitureData={selectedFurnitureData}
             onRotate={handleRotate}
+            onDuplicate={handleDuplicate}
             onDelete={handleDelete}
             onBringForward={handleBringForward}
             onSendBackward={handleSendBackward}
@@ -266,4 +389,3 @@ export default function RoomEditor({ space, onBackToSpaces }) {
     </div>
   );
 }
-

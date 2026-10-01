@@ -6,6 +6,7 @@ export default function InspectorPanel({
   selectedItem,
   furnitureData,
   onRotate,
+  onDuplicate,
   onDelete,
   onBringForward,
   onSendBackward,
@@ -84,6 +85,19 @@ export default function InspectorPanel({
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                 </svg>
                 <span>90° 회전하기</span>
+              </button>
+
+              <button
+                type="button"
+                className="action-btn-duplicate touch-target"
+                onClick={onDuplicate}
+                title="선택한 가구 복제"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="13" height="13" x="9" y="9" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span>복제하기</span>
               </button>
 
               <div className="action-layer-row">

@@ -207,12 +207,22 @@
   .count-label,
   .back-btn .btn-text,
   .reset-btn .btn-text,
+  .history-btn .btn-text,
   .header-divider {
     display: none;
   }
 
   .header-title {
     font-size: 15px;
+  }
+
+  .header-history-group {
+    gap: 4px;
+  }
+
+  .history-btn {
+    padding: 6px 8px;
+    min-width: 36px;
   }
 
   .item-count-badge {

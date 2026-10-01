@@ -9,6 +9,10 @@ export default function Header({
   onToggleFurniture,
   isInspectorOpen,
   onToggleInspector,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
 }) {
   return (
     <header className="room-editor-header">
@@ -54,6 +58,38 @@ export default function Header({
       </div>
 
       <div className="header-right">
+        {/* Undo / Redo Buttons */}
+        <div className="header-history-group" role="group" aria-label="실행 취소 및 다시 실행">
+          <button
+            type="button"
+            className="history-btn touch-target"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="실행 취소 (Ctrl+Z)"
+            aria-label="실행 취소"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7v6h6" />
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+            </svg>
+            <span className="btn-text">실행 취소</span>
+          </button>
+
+          <button
+            type="button"
+            className="history-btn touch-target"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="다시 실행 (Ctrl+Shift+Z, Ctrl+Y)"
+            aria-label="다시 실행"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+            </svg>
+            <span className="btn-text">다시 실행</span>
+          </button>
+        </div>
         {/* Tablet Toggle for Inspector Panel */}
         <button
           type="button"

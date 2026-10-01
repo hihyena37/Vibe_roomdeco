@@ -11,6 +11,9 @@ export default function RoomCanvas({
   selectedItemId,
   onSelectItem,
   onUpdateItemPosition,
+  onDragStart,
+  onDragEnd,
+  onDragCancel,
 }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -80,7 +83,9 @@ export default function RoomCanvas({
       scale, // Save current scale for coordinate conversion
       targetElement: e.currentTarget,
     };
-  }, [placedItems, onSelectItem, scale]);
+
+    onDragStart?.();
+  }, [placedItems, onSelectItem, scale, onDragStart]);
 
   // Pointer Move with Grid Snap + Boundary Clamp
   const handlePointerMove = useCallback((e) => {
@@ -128,9 +133,17 @@ export default function RoomCanvas({
       }
     }
 
+    const isCancel = e.type === 'pointercancel';
+
     dragRef.current = null;
     setDraggingId(null);
-  }, [handlePointerMove]);
+
+    if (isCancel) {
+      onDragCancel?.();
+    } else {
+      onDragEnd?.();
+    }
+  }, [handlePointerMove, onDragEnd, onDragCancel]);
 
   // Canvas background click -> Deselect
   const handleCanvasClick = useCallback((e) => {

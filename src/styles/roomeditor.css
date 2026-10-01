@@ -106,6 +106,34 @@
   color: #B91C1C;
 }
 
+.header-history-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid var(--border-subtle);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.history-btn:hover:not(:disabled) {
+  background: var(--border-subtle);
+  border-color: var(--border-strong);
+}
+
+.history-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Editor Main Body: 3-column Layout for PC */
 .room-editor-body {
   flex: 1;
